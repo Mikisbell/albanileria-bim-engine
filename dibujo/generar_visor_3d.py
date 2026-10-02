@@ -35,6 +35,14 @@ import proyecto as P  # type: ignore
 
 def extraer_datos():
     """Extrae la geometria real de muros, confinamientos, vanos y resultados OpenSeesPy."""
+    cache_path = os.path.join(AQUI, "..", "salidas", "datos_visor_3d.json")
+    if os.path.exists(cache_path):
+        try:
+            with open(cache_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+
     M20 = importlib.import_module("20_modelo_opensees")
     R18 = importlib.import_module("18_diseno_muros")
     R11 = importlib.import_module("11_metrado_muros")
