@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Visor 3D Senior — Modelo OpenSeesPy Albañilería Confinada (E.070 / E.030)</title>
+  <style>
+    :root {
+      --bg-dark: #07090e;
+      --panel-bg: rgba(13, 19, 33, 0.94);
+      --panel-border: rgba(148, 163, 184, 0.20);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #2563eb;
+      --brick: #c2410c;
+      --concrete: #64748b;
+      --tag-ok: #10b981;
+      --tag-warn: #f59e0b;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    body {
+      background: var(--bg-dark);
+      color: var(--text-main);
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+    }
+    #canvas-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    /* Top Engineering Header */
+    header {
+      position: absolute;
+      top: 16px;
+      left: 20px;
+      z-index: 10;
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px);
+      padding: 14px 20px;
+      border-radius: 12px;
+      border: 1px solid var(--panel-border);
+      max-width: 540px;
+      box-shadow: 0 16px 36px rgba(0,0,0,0.6);
+      pointer-events: auto;
+    }
+    header h1 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+    header h1 span.badge {
+      font-size: 0.68rem;
+      background: #c2410c;
+      color: white;
+      padding: 3px 8px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+    }
+    header h1 span.badge-fea {
+      font-size: 0.68rem;
+      background: #0284c7;
+      color: white;
+      padding: 3px 8px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      font-weight: 800;
+    }
+    header p.sub {
+      font-size: 0.77rem;
+      color: var(--text-muted);
+      margin-top: 6px;
+      line-height: 1.35;
+    }
+    .tech-specs {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-top: 10px;
+      font-size: 0.72rem;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding-top: 8px;
+    }
+    .tech-item {
+      display: flex;
+      flex-direction: column;
+    }
+    .tech-item .label {
+      color: var(--text-muted);
+      font-size: 0.68rem;
+    }
+    .tech-item .val {
+      font-weight: 700;
+      color: #38bdf8;
+      font-size: 0.76rem;
+    }
+
+    /* Control Sidebar (Right Side) */
+    #sidebar {
+      position: absolute;
+      top: 16px;
+      right: 20px;
+      width: 335px;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: calc(100vh - 32px);
+      overflow-y: auto;
+      pointer-events: auto;
+    }
+    #sidebar::-webkit-scrollbar {
+      width: 5px;
+    }
+    #sidebar::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.15);
+      border-radius: 4px;
+    }
+    .panel-card {
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px);
+      border-radius: 12px;
+      border: 1px solid var(--panel-border);
+      padding: 12px 14px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.5);
+    }
+    .panel-card h3 {
+      font-size: 0.76rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #94a3b8;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .btn-group {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
+    .btn-group.triple {
+      grid-template-columns: repeat(3, 1fr);
+    }
+    .btn-group.quad {
+      grid-template-columns: repeat(4, 1fr);
+    }
+    .btn {
+      background: rgba(30, 41, 59, 0.85);
+      border: 1px solid rgba(148, 163, 184, 0.20);
+      color: #e2e8f0;
+      padding: 7px 8px;
+      font-size: 0.73rem;
+      font-weight: 600;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: all 0.16s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    .btn:hover {
+      background: rgba(51, 65, 85, 0.95);
+      border-color: rgba(148, 163, 184, 0.40);
+      color: #ffffff;
+    }
+    .btn.active {
+      background: #2563eb;
+      border-color: #3b82f6;
+      color: #ffffff;
+      box-shadow: 0 0 12px rgba(37, 99, 235, 0.45);
+    }
+    .btn-sm {
+      padding: 4px 6px;
+      font-size: 0.68rem;
+    }
+    .slider-row {
+      margin-top: 8px;
+    }
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.70rem;
+      color: var(--text-muted);
+      margin-bottom: 3px;
+    }
+    .slider-header .val {
+      color: #38bdf8;
+      font-weight: 700;
+    }
+    input[type=range] {
+      width: 100%;
+      height: 4px;
+      background: #1e293b;
+      border-radius: 2px;
+      outline: none;
+      -webkit-appearance: none;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #38bdf8;
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
+    }
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.72rem;
+      padding: 3.5px 0;
+      cursor: pointer;
+      color: #cbd5e1;
+    }
+    .toggle-row input[type=checkbox] {
+      cursor: pointer;
+      accent-color: #2563eb;
+    }
+
+    /* Bottom Element Inspector Card */
+    #info-panel {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      z-index: 10;
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px);
+      padding: 14px 18px;
+      border-radius: 12px;
+      border: 1px solid var(--panel-border);
+      max-width: 620px;
+      width: calc(100% - 390px);
+      box-shadow: 0 16px 36px rgba(0,0,0,0.6);
+      pointer-events: auto;
+    }
+    #card-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .details-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-top: 10px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding-top: 8px;
+    }
+    .detail-item {
+      display: flex;
+      flex-direction: column;
+    }
+    .detail-item .lbl {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+    }
+    .detail-item .val {
+      font-size: 0.77rem;
+      font-weight: 700;
+      color: #f1f5f9;
+      margin-top: 2px;
+    }
+    .tag-status {
+      font-size: 0.68rem;
+      padding: 3px 8px;
+      border-radius: 5px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .tag-ok {
+      background: rgba(16, 185, 129, 0.20);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.40);
+    }
+    .tag-warn {
+      background: rgba(245, 158, 11, 0.20);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.40);
+    }
+
+    .progress-bar-bg {
+      width: 100%;
+      height: 6px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 3px;
+      margin-top: 4px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: #10b981;
+      width: 62%;
+      transition: width 0.3s ease, background 0.3s ease;
+    }
+
+    /* Bottom Right Hint */
+    .hint {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      z-index: 9;
+      font-size: 0.70rem;
+      color: #64748b;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(8px);
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(148, 163, 184, 0.15);
+      pointer-events: none;
+    }
+
+    /* Legend Color Badges */
+    .legend-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 5px;
+      margin-top: 6px;
+      font-size: 0.68rem;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #94a3b8;
+    }
+    .legend-box {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="canvas-container"></div>
+
+  <!-- Engineering Header -->
+  <header>
+    <h1>
+      <span>Edificio Multifamiliar 5 Niveles</span>
+      <span class="badge">E.070 Albañilería</span>
+      <span class="badge-fea">OpenSeesPy</span>
+    </h1>
+    <p class="sub">
+      Modelado Tridimensional por Elementos Finitos (FEM) · Ladrillo King Kong arcilla cocida,
+      columnas C-1/C-2 y vigas soleras continuas con diafragmas rígidos.
+    </p>
+    <div class="tech-specs">
+      <div class="tech-item">
+        <span class="label">Dimensiones Lote</span>
+        <span class="val">12,00 × 30,50 m</span>
+      </div>
+      <div class="tech-item">
+        <span class="label">Área Edificada</span>
+        <span class="val">11,90 × 21,00 m</span>
+      </div>
+      <div class="tech-item">
+        <span class="label">Altura Total</span>
+        <span class="val">13,50 m (5 Pisos)</span>
+      </div>
+      <div class="tech-item">
+        <span class="label">Período Fundamental</span>
+        <span class="val" id="header-t1">T1 = 0,188 s (X)</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Sidebar Controls -->
+  <div id="sidebar">
+    <!-- Visual Representation Modes -->
+    <div class="panel-card">
+      <h3>Modo de Renderizado</h3>
+      <div class="btn-group">
+        <button class="btn active" id="btn-mode-bim" onclick="setVisualMode('bim')">🧱 BIM Realista</button>
+        <button class="btn" id="btn-mode-fem" onclick="setVisualMode('fem')">📊 FEM Heatmap</button>
+        <button class="btn" id="btn-mode-xray" onclick="setVisualMode('xray')">🔍 Rayos X</button>
+        <button class="btn" id="btn-mode-wire" onclick="setVisualMode('wire')">📐 Alámbrico</button>
+      </div>
+      <div id="fem-legend" style="display: none; margin-top: 8px;">
+        <div class="legend-grid">
+          <div class="legend-item"><div class="legend-box" style="background: #10b981;"></div><span>Uso &lt; 0,45 (Óptimo)</span></div>
+          <div class="legend-item"><div class="legend-box" style="background: #84cc16;"></div><span>0,45 - 0,55 (Medio)</span></div>
+          <div class="legend-item"><div class="legend-box" style="background: #f59e0b;"></div><span>0,55 - 0,65 (Exigido)</span></div>
+          <div class="legend-item"><div class="legend-box" style="background: #ef4444;"></div><span>&gt; 0,65 (Alerta)</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Exploded View / Despiece por niveles -->
+    <div class="panel-card">
+      <h3>Despiece por Niveles</h3>
+      <div class="slider-row">
+        <div class="slider-header">
+          <span>Separación Vertical de Pisos</span>
+          <span class="val" id="val-explode">0,0 m</span>
+        </div>
+        <input type="range" id="slider-explode" min="0" max="6.0" step="0.2" value="0" oninput="updateExplode(this.value)">
+      </div>
+    </div>
+
+    <!-- Aislamiento por Niveles -->
+    <div class="panel-card">
+      <div class="slider-header" style="margin-bottom: 6px;">
+        <span>Aislar Piso Específico</span>
+        <span class="val" id="val-floor-active">Todos</span>
+      </div>
+      <div class="btn-group" style="grid-template-columns: repeat(6, 1fr); gap: 4px;">
+        <button class="btn btn-sm active" id="btn-fl-0" onclick="isolateFloor(0)">Todos</button>
+        <button class="btn btn-sm" id="btn-fl-1" onclick="isolateFloor(1)">P1</button>
+        <button class="btn btn-sm" id="btn-fl-2" onclick="isolateFloor(2)">P2</button>
+        <button class="btn btn-sm" id="btn-fl-3" onclick="isolateFloor(3)">P3</button>
+        <button class="btn btn-sm" id="btn-fl-4" onclick="isolateFloor(4)">P4</button>
+        <button class="btn btn-sm" id="btn-fl-5" onclick="isolateFloor(5)">P5</button>
+      </div>
+    </div>
+
+    <!-- Dynamic Modal Animation (OpenSeesPy) -->
+    <div class="panel-card">
+      <h3>Dinámica Modal OpenSeesPy</h3>
+      <div class="btn-group">
+        <button class="btn active" id="btn-static" onclick="setMode(0)">⏸️ Estático</button>
+        <button class="btn" id="btn-mode1" onclick="setMode(1)">Modo 1 (X)</button>
+        <button class="btn" id="btn-mode2" onclick="setMode(2)">Modo 2 (Y)</button>
+        <button class="btn" id="btn-mode3" onclick="setMode(3)">Modo 3 (Torsión)</button>
+      </div>
+
+      <div class="slider-row">
+        <div class="slider-header">
+          <span>Amplitud Deformada</span>
+          <span class="val" id="val-scale">50x</span>
+        </div>
+        <input type="range" id="slider-scale" min="5" max="150" value="50" oninput="updateScale(this.value)">
+      </div>
+
+      <div class="slider-row">
+        <div class="slider-header">
+          <span>Velocidad de Oscilación</span>
+          <span class="val" id="val-speed">1.0x</span>
+        </div>
+        <input type="range" id="slider-speed" min="0.2" max="3.0" step="0.1" value="1.0" oninput="updateSpeed(this.value)">
+      </div>
+    </div>
+
+    <!-- Camera Presets -->
+    <div class="panel-card">
+      <h3>Cámaras Técnicas</h3>
+      <div class="btn-group triple">
+        <button class="btn" onclick="setCamera('iso')">3D Iso</button>
+        <button class="btn" onclick="setCamera('top')">Planta</button>
+        <button class="btn" onclick="setCamera('front')">Fachada</button>
+        <button class="btn" onclick="setCamera('side')">Medianera</button>
+        <button class="btn" onclick="setCamera('roof')">Azotea</button>
+        <button class="btn" onclick="setCamera('foundation')">Cimentación</button>
+        <button class="btn" onclick="setCamera('stairs')">Escalera</button>
+        <button class="btn" onclick="setCamera('deptoA')">Depto 1</button>
+        <button class="btn" onclick="setCamera('deptoB')">Depto 2</button>
+        <button class="btn" onclick="resetCamera()">Reset</button>
+      </div>
+    </div>
+
+    <!-- Impacto Ambiental y Costos (LCA) -->
+    <div class="panel-card">
+      <h3>Costo de Obra y Huella Carbono</h3>
+      <div class="tech-specs" style="grid-template-columns: 1fr 1fr; border-top: none; padding-top: 0;">
+        <div class="tech-item">
+          <span class="label">Vol. Concreto</span>
+          <span class="val">~ 185 m³</span>
+        </div>
+        <div class="tech-item">
+          <span class="label">Acero Corrugado</span>
+          <span class="val">~ 14 500 kg</span>
+        </div>
+        <div class="tech-item" style="margin-top: 6px;">
+          <span class="label">Costo Estructura</span>
+          <span class="val" style="color:#10b981;">S/ 315,000</span>
+        </div>
+        <div class="tech-item" style="margin-top: 6px;">
+          <span class="label">Huella (CO₂)</span>
+          <span class="val" style="color:#f59e0b;">~ 92.5 Ton</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Layer Toggles -->
+    <div class="panel-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <h3 style="margin: 0;">Capas Estructurales</h3>
+        <span style="font-size: 0.65rem; color: #94a3b8;">Control BIM</span>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 9px;">
+        <button class="btn btn-sm" onclick="setAllLayers(true)">✓ Todo</button>
+        <button class="btn btn-sm" onclick="setAllLayers(false)">✕ Nada</button>
+        <button class="btn btn-sm" onclick="setLayerPreset('structure')">🏢 Esqueleto</button>
+        <button class="btn btn-sm" onclick="setLayerPreset('masonry')">🧱 Muros</button>
+        <button class="btn btn-sm" onclick="setLayerPreset('foundation')">🏗️ Cimientos</button>
+        <button class="btn btn-sm" onclick="setLayerPreset('all')">👁️ Completo</button>
+      </div>
+      <label class="toggle-row">
+        <span style="color: #38bdf8; font-weight: 600;">Cimientos Corridos (Df = -1,50 m)</span>
+        <input type="checkbox" id="chk-foundation" checked onchange="toggleLayer('foundation', this.checked)">
+      </label>
+      <label class="toggle-row">
+        <span style="color: #fb923c; font-weight: 600;">Muros de Ladrillo King Kong</span>
+        <input type="checkbox" id="chk-brick" checked onchange="toggleLayer('brick', this.checked)">
+      </label>
+      <label class="toggle-row">
+        <span style="color: #94a3b8; font-weight: 600;">Columnas C-1 / C-2 (Concreto)</span>
+        <input type="checkbox" id="chk-cols" checked onchange="toggleLayer('cols', this.checked)">
+      </label>
+      <label class="toggle-row">
+        <span style="color: #cbd5e1; font-weight: 600;">Vigas Soleras y Dinteles (Concreto)</span>
+        <input type="checkbox" id="chk-soleras" checked onchange="toggleLayer('soleras', this.checked)">
+      </label>
+      <label class="toggle-row">
+        <span>Losas Aligeradas (Pozo de Luz + Hueco Escalera)</span>
+        <input type="checkbox" id="chk-slabs" checked onchange="toggleLayer('slabs', this.checked)">
+      </label>
+      <label class="toggle-row">
+        <span style="color: #f97316; font-weight: 600;">Parapeto de Azotea (h = 1,10 m Arriostrado)</span>
+        <input type="checkbox" id="chk-parapeto" checked onchange="toggleLayer('parapeto', this.checked)">
+      </label>
+      <label class="toggle-row">
+        <span style="color: #60a5fa; font-weight: 600;">Caja de Escalera (2 Tramos + C-3)</span>
+        <input type="checkbox" id="chk-stairs" checked onchange="toggleLayer('stairs', this.checked)">
+      </label>
+      <label class="toggle-row">
+        <span style="color: #34d399; font-weight: 600;">2 Departamentos / Piso (Arquitectura)</span>
+        <input type="checkbox" id="chk-deptos" checked onchange="toggleLayer('deptos', this.checked)">
+      </label>
+      <label class="toggle-row">
+        <span>Carpintería (Puertas y Vidrios)</span>
+        <input type="checkbox" id="chk-openings" checked onchange="toggleLayer('openings', this.checked)">
+      </label>
+      <label class="toggle-row">
+        <span>Entorno Urbano y Retiros</span>
+        <input type="checkbox" id="chk-site" checked onchange="toggleLayer('site', this.checked)">
+      </label>
+      <label class="toggle-row">
+        <span style="color: #facc15; font-weight: 600;">Centros de Masa y Diafragmas</span>
+        <input type="checkbox" id="chk-cm" checked onchange="toggleLayer('cm', this.checked)">
+      </label>
+    </div>
+  </div>
+
+  <!-- Bottom Element Inspector Card -->
+  <div id="info-panel">
+    <div id="card-title">
+      <span id="txt-card-title">MX-1 · Fachada Frontal (Albañilería Confinada)</span>
+      <span class="tag-status tag-ok" id="card-status-tag">Ve ≤ 0,55 Vm (CUMPLE)</span>
+    </div>
+    <div class="details-grid">
+      <div class="detail-item">
+        <span class="lbl">Dimensiones (L × t × h)</span>
+        <span class="val" id="card-dims">11,90 m × 0,24 m × 13,50 m</span>
+      </div>
+      <div class="detail-item">
+        <span class="lbl">Vanos y Puertas</span>
+        <span class="val" id="card-vanos">1 Puerta (Piso 1) + 4 Ventanas</span>
+      </div>
+      <div class="detail-item">
+        <span class="lbl">Cortante OpenSeesPy (Ve)</span>
+        <span class="val" id="card-vmod" style="color: #60a5fa;">42 546 kgf (+20,2 %)</span>
+      </div>
+      <div class="detail-item">
+        <span class="lbl">Control E.070 (8.5.2)</span>
+        <span class="val" id="card-uso">Uso: 62 % de 0,55 Vm</span>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="card-prog" style="width: 62%;"></div>
+        </div>
+        <button id="btn-explain" class="btn btn-sm" style="margin-top:8px; display:none; background:#2563eb; font-size:0.65rem;" onclick="mostrarExplicacionE070()">🧠 Explicar Fórmula</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Ingeniería Explicable -->
+  <div id="modal-explain" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:var(--panel-bg); padding:20px; border-radius:12px; border:1px solid var(--panel-border); z-index:100; box-shadow:0 20px 40px rgba(0,0,0,0.8); backdrop-filter:blur(16px); min-width:350px;">
+    <h3 style="margin-bottom:10px; font-size:0.9rem; color:#fff; display:flex; justify-content:space-between; align-items:center;">
+      Ingeniería Explicable (E.070 Art. 8.5.2)
+      <span style="cursor:pointer; color:#94a3b8; font-size:1.2rem;" onclick="document.getElementById('modal-explain').style.display='none'">✕</span>
+    </h3>
+    <div id="modal-formula-content" style="font-family:monospace; font-size:0.8rem; color:#cbd5e1; line-height:1.6; background:#0f172a; padding:12px; border-radius:8px;">
+    </div>
+  </div>
+
+  <div class="hint">
+    Arrastre clic izq: rotar · Clic der: mover · Rueda: zoom · Clic en un elemento: inspeccionar
+  </div>
+
+  <!-- Three.js + OrbitControls (Local offline fallback to CDN) -->
+  <!-- Cargar Three.js via CDN directly to avoid Streamlit routing issues -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+  <!-- Script del Modelo 3D Senior Profesional -->
+  <!-- INYECTAR_JS -->
+    <script>
+    /* INYECTAR_JSON */
+    </script>
+</body>
+</html>
